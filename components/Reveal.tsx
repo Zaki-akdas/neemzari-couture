@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import type { ReactNode } from "react";
 
@@ -18,18 +18,17 @@ const initialVariants: Record<Variant, Record<string, number | string>> = {
 const shownState = { opacity: 1, x: 0, y: 0, scale: 1, clipPath: "inset(0 0 0 0)" };
 
 /**
- * Reveal — modern scroll-triggered reveal built on Motion.
- * Elegant, spring-based transitions that respect prefers-reduced-motion
- * (renders fully visible with no motion when the user asks for less).
+ * Reveal — scroll-triggered reveal built on Motion.
  *
- * Handles anchor-link navigation: if the page is already scrolled when
- * components mount (user arrived via hash link), all reveals start visible.
+ * Uses a useRef + IntersectionObserver directly instead of motion's
+ * whileInView to avoid issues with dynamic motion components.
+ * Includes a fallback timer so content is always visible even if the
+ * observer doesn't fire.
  */
 export default function Reveal({
   children,
   delay = 0,
   className = "",
-  as: Tag = "div",
   variant = "fade-up",
   once = true,
 }: {
@@ -41,30 +40,54 @@ export default function Reveal({
   once?: boolean;
 }) {
   const reduce = useReducedMotion();
-  const [skip, setSkip] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
 
-  // Before paint: if the user arrived via an anchor link (page already
-  // scrolled), skip animations so all content is immediately visible.
-  useLayoutEffect(() => {
-    if (reduce || skip) return;
-    if (typeof window !== "undefined" && window.scrollY > 100) {
-      setSkip(true);
+  // If the user prefers reduced motion, skip the animation entirely.
+  useEffect(() => {
+    if (reduce) {
+      setIsVisible(true);
     }
-  }, [reduce, skip]);
+  }, [reduce]);
 
-  const Comp = motion[Tag] as React.ElementType;
+  // IntersectionObserver to detect when element enters the viewport.
+  useEffect(() => {
+    if (reduce || isVisible) return;
+    const el = ref.current;
+    if (!el) return;
+
+    // Fallback: force visibility after 4 seconds regardless.
+    const fallbackTimer = setTimeout(() => setIsVisible(true), 4000);
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          if (once) observer.disconnect();
+          clearTimeout(fallbackTimer);
+        }
+      },
+      { threshold: 0.05, rootMargin: "0px 0px -2% 0px" },
+    );
+
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      clearTimeout(fallbackTimer);
+    };
+  }, [reduce, isVisible, once]);
 
   const spring = { type: "spring" as const, stiffness: 90, damping: 22, mass: 0.8, delay };
 
   return (
-    <Comp
+    <motion.div
+      ref={ref}
       className={className}
-      initial={reduce || skip ? shownState : initialVariants[variant]}
-      whileInView={shownState}
-      viewport={{ once, amount: 0.08, margin: "0px 0px -4% 0px" }}
-      transition={reduce || skip ? { duration: 0 } : spring}
+      initial={reduce ? shownState : initialVariants[variant]}
+      animate={isVisible ? shownState : initialVariants[variant]}
+      transition={reduce ? { duration: 0 } : spring}
     >
       {children}
-    </Comp>
+    </motion.div>
   );
 }
