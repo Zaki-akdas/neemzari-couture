@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import type { ReactNode } from "react";
 
@@ -22,8 +22,8 @@ const shownState = { opacity: 1, x: 0, y: 0, scale: 1, clipPath: "inset(0 0 0 0)
  * Elegant, spring-based transitions that respect prefers-reduced-motion
  * (renders fully visible with no motion when the user asks for less).
  *
- * Handles anchor-link navigation: elements already above the viewport
- * on mount are immediately shown so they don't stay invisible.
+ * Handles anchor-link navigation: if the page is already scrolled when
+ * components mount (user arrived via hash link), all reveals start visible.
  */
 export default function Reveal({
   children,
@@ -41,20 +41,16 @@ export default function Reveal({
   once?: boolean;
 }) {
   const reduce = useReducedMotion();
-  const ref = useRef<HTMLDivElement>(null);
-  const [skipAnimation, setSkipAnimation] = useState(false);
+  const [skip, setSkip] = useState(false);
 
-  // If the element is already above the viewport on mount (e.g. after an
-  // anchor-link jump), skip the entrance animation and show it immediately.
-  useEffect(() => {
-    if (reduce) return;
-    const el = ref.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    if (rect.bottom < 0) {
-      setSkipAnimation(true);
+  // Before paint: if the user arrived via an anchor link (page already
+  // scrolled), skip animations so all content is immediately visible.
+  useLayoutEffect(() => {
+    if (reduce || skip) return;
+    if (typeof window !== "undefined" && window.scrollY > 100) {
+      setSkip(true);
     }
-  }, [reduce]);
+  }, [reduce, skip]);
 
   const Comp = motion[Tag] as React.ElementType;
 
@@ -62,14 +58,11 @@ export default function Reveal({
 
   return (
     <Comp
-      ref={ref}
       className={className}
-      // When reduced motion is on, or element is above viewport on mount,
-      // start visible so nothing animates.
-      initial={reduce || skipAnimation ? shownState : initialVariants[variant]}
+      initial={reduce || skip ? shownState : initialVariants[variant]}
       whileInView={shownState}
-      viewport={{ once, amount: 0.05, margin: "0px 0px -2% 0px" }}
-      transition={reduce || skipAnimation ? { duration: 0 } : spring}
+      viewport={{ once, amount: 0.08, margin: "0px 0px -4% 0px" }}
+      transition={reduce || skip ? { duration: 0 } : spring}
     >
       {children}
     </Comp>
