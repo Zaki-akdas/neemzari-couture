@@ -64,7 +64,7 @@ export default function Hero() {
       <div className="glow absolute inset-0" />
 
       {/* Content */}
-      <div className="relative z-10 mx-auto flex h-full max-w-[1400px] flex-col justify-end px-5 pb-28 sm:px-8 sm:pb-20 lg:justify-center lg:px-12 lg:pb-0">
+      <div className="relative z-10 mx-auto flex h-full max-w-[1400px] flex-col justify-end px-5 pb-40 sm:px-8 sm:pb-28 lg:justify-center lg:px-12 lg:pb-0">
         <div className="max-w-2xl">
           <motion.p
             initial={reduce ? { opacity: 1 } : { opacity: 0, y: 12 }}

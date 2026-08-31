@@ -59,7 +59,7 @@ export default function StoreExperience() {
                 className="h-full w-full"
                 strength={30}
               />
-              <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between bg-espresso/70 p-5 backdrop-blur-sm">
+              <div className="absolute bottom-0 left-0 right-0 flex flex-col gap-2 bg-espresso/70 p-4 backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between sm:p-5">
                 <p className="text-[0.62rem] tracking-[0.22em] uppercase text-ivory/80">
                   {SITE.address.plaza}
                 </p>

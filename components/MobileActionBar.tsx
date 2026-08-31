@@ -15,7 +15,7 @@ export default function MobileActionBar() {
   useEffect(() => {
     const onScroll = () => {
       const nearBottom =
-        window.innerHeight + window.scrollY >= document.body.scrollHeight - 120;
+        window.innerHeight + window.scrollY >= document.body.scrollHeight - 300;
       setShow(!nearBottom);
     };
     onScroll();
